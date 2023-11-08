@@ -103,14 +103,31 @@ public class PromptTypeServiceImpl implements PromptTypeService {
 
     @Override
     public List<PromptTypeMaster> getPromptType() {
+        String userId = StpUtil.getLoginIdAsString();
+        List<PromptType> promptTypes1 = promptTypeMapper.selectFavorite(userId);
+        List<Integer> collect = promptTypes1.stream().map(item -> item.getId()).collect(Collectors.toList());
         List<PromptTypeMaster> promptType = promptTypeMapper.getPromptType();
         // 点击量最高的放第一个常用
         List<PromptType> list = promptTypeMapper.selectHotByChoiceNum();
         promptType.stream().forEach(item ->{
             if(item.getId() == 1){ // 常用
+                list.stream().forEach(item2 ->{
+                    if(collect.contains(item2.getId())){
+                        item2.setIsFavorite("1");
+                    }else {
+                        item2.setIsFavorite("0");
+                    }
+                });
                 item.setItemList(list);
             }else {
                 List<PromptType> promptById = promptTypeMapper.getPromptById(item.getId() + "");
+                promptById.stream().forEach(item2 ->{
+                    if(collect.contains(item2.getId())){
+                        item2.setIsFavorite("1");
+                    }else {
+                        item2.setIsFavorite("0");
+                    }
+                });
                 item.setItemList(promptById);
             }
         });
