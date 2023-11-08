@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.aezo.chat_gpt.mapper.PromptTypeMapper">
+
+    <resultMap id="BaseResultMap" type="cn.aezo.chat_gpt.entity.PromptType" >
+        <result column="id" property="id" />
+        <result column="name" property="name" />
+        <result column="description" property="description" />
+        <result column="type" property="type" />
+        <result column="content_zh" property="contentZh" />
+        <result column="content_en" property="contentEn" />
+        <result column="create_time" property="createTime" />
+        <result column="favorite" property="favorite" />
+        <result column="choice_num" property="choiceNum" />
+        <result column="image" property="image" />
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id,
+                name,
+                description,
+                type,
+                content_zh,
+                content_en,
+                create_time,
+                favorite,
+                choice_num,image
+    </sql>
+
+    <insert id="insert" useGeneratedKeys="true" keyColumn="id" keyProperty="id" parameterType="cn.aezo.chat_gpt.entity.PromptType">
+        INSERT INTO mt_prompt
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="null != name and '' != name">
+                name,
+            </if>
+            <if test="null != description and '' != description">
+                description,
+            </if>
+            <if test="null != type and '' != type">
+                type,
+            </if>
+            <if test="null != contentZh and '' != contentZh">
+                content_zh,
+            </if>
+            <if test="null != contentEn and '' != contentEn">
+                content_en,
+            </if>
+            <if test="null != createTime and '' != createTime">
+                create_time,
+            </if>
+            <if test="null != favorite and '' != favorite">
+                favorite,
+            </if>
+            <if test="null != choiceNum and '' != choiceNum">
+                choice_num,
+            </if><if test="null != image and '' != image">
+            image
+            </if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="null != name and '' != name">
+                #{name},
+            </if>
+            <if test="null != description and '' != description">
+                #{description},
+            </if>
+            <if test="null != type and '' != type">
+                #{type},
+            </if>
+            <if test="null != contentZh and '' != contentZh">
+                #{contentZh},
+            </if>
+            <if test="null != contentEn and '' != contentEn">
+                #{contentEn},
+            </if>
+            <if test="null != createTime and '' != createTime">
+                #{createTime},
+            </if>
+            <if test="null != favorite and '' != favorite">
+                #{favorite},
+            </if>
+            <if test="null != choiceNum and '' != choiceNum">
+                #{choiceNum},
+            </if>
+            <if test="null != image and '' != image">
+                #{image}
+            </if>
+        </trim>
+    </insert>
+    <insert id="saveFavoritePrompt">
+        insert into mt_user_prompt(user_id,prompt_id)
+        values (#{userId},#{id})
+    </insert>
+
+    <delete id="delete" >
+        DELETE FROM mt_mt_prompt
+        WHERE id = #{id}
+    </delete>
+    <delete id="deleteByUserId">
+        delete FROM mt_user_prompt where user_id = #{userId} and prompt_id = #{id}
+    </delete>
+
+    <update id="update" parameterType="cn.aezo.chat_gpt.entity.PromptType">
+        UPDATE mt_prompt
+        <set>
+            <if test="null != name and '' != name">name = #{name},</if>
+            <if test="null != description and '' != description">description = #{description},</if>
+            <if test="null != type and '' != type">type = #{type},</if>
+            <if test="null != contentZh and '' != contentZh">content_zh = #{contentZh},</if>
+            <if test="null != contentEn and '' != contentEn">content_en = #{contentEn},</if>
+            <if test="null != createTime and '' != createTime">create_time = #{createTime},</if>
+            <if test="null != favorite and '' != favorite">favorite = #{favorite},</if>
+            <if test="null != choiceNum and '' != choiceNum">choice_num = #{choiceNum}</if>
+            <if test="null != image and '' != image">image = #{image}</if>
+        </set>
+        WHERE id = #{id}
+    </update>
+
+
+    <select id="load" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List" />
+        FROM mt_prompt
+        WHERE id = #{id}
+    </select>
+
+    <select id="pageList" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List" />
+        FROM mt_prompt
+        LIMIT #{offset}, #{pageSize}
+    </select>
+
+    <select id="pageListCount" resultType="java.lang.Integer">
+        SELECT count(1)
+        FROM mt_prompt
+    </select>
+    <select id="selectTop10" resultMap="BaseResultMap">
+        select <include refid="Base_Column_List" />
+            from mt_prompt order by choice_num limit 10
+    </select>
+    <select id="selectFavorite" resultMap="BaseResultMap">
+        select mpt.*  from mt_prompt mpt join mt_user_prompt mupt on mpt.id = mupt.prompt_id
+        where mupt.user_id = #{userId} order by mupt.id desc
+    </select>
+    <select id="checkFavoritePrompt" resultType="java.lang.Integer">
+        select count(1) from mt_user_prompt  where user_id = #{userId} and prompt_id = #{id}
+    </select>
+    <select id="getPromptType" resultType="cn.aezo.chat_gpt.entity.PromptTypeMster">
+        select * from mt_prompt_type
+    </select>
+    <select id="getPromptById" resultType="cn.aezo.chat_gpt.entity.PromptType">
+        select * from mt_prompt where type = #{id}
+    </select>
+
+</mapper>
