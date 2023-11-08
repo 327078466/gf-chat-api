@@ -111,7 +111,7 @@
             <if test="null != contentEn and '' != contentEn">content_en = #{contentEn},</if>
             <if test="null != createTime and '' != createTime">create_time = #{createTime},</if>
             <if test="null != favorite and '' != favorite">favorite = #{favorite},</if>
-            <if test="null != choiceNum and '' != choiceNum">choice_num = #{choiceNum}</if>
+            <if test="null != choiceNum and '' != choiceNum">choice_num = #{choiceNum},</if>
             <if test="null != image and '' != image">image = #{image}</if>
         </set>
         WHERE id = #{id}
@@ -136,7 +136,7 @@
     </select>
     <select id="selectTop10" resultMap="BaseResultMap">
         select <include refid="Base_Column_List" />
-            from mt_prompt order by choice_num limit 10
+            from mt_prompt order by favorite desc limit 10
     </select>
     <select id="selectFavorite" resultMap="BaseResultMap">
         select mpt.*  from mt_prompt mpt join mt_user_prompt mupt on mpt.id = mupt.prompt_id
@@ -145,11 +145,13 @@
     <select id="checkFavoritePrompt" resultType="java.lang.Integer">
         select count(1) from mt_user_prompt  where user_id = #{userId} and prompt_id = #{id}
     </select>
-    <select id="getPromptType" resultType="cn.aezo.chat_gpt.entity.PromptTypeMster">
+    <select id="getPromptType" resultType="cn.aezo.chat_gpt.entity.PromptTypeMaster">
         select * from mt_prompt_type
     </select>
-    <select id="getPromptById" resultType="cn.aezo.chat_gpt.entity.PromptType">
+    <select id="getPromptById" resultMap="BaseResultMap">
         select * from mt_prompt where type = #{id}
     </select>
-
+    <select id="selectHotByChoiceNum" resultMap="BaseResultMap">
+        select * from mt_prompt order by choice_num desc limit 10
+    </select>
 </mapper>

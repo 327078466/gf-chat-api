@@ -1,15 +1,13 @@
 package cn.aezo.chat_gpt.controller;
 
 import cn.aezo.chat_gpt.entity.PromptType;
-import cn.aezo.chat_gpt.entity.PromptTypeMster;
+import cn.aezo.chat_gpt.entity.PromptTypeMaster;
 import cn.aezo.chat_gpt.service.PromptTypeService;
 import cn.aezo.chat_gpt.util.Result;
 import cn.dev33.satoken.stp.StpUtil;
-import org.bouncycastle.cert.ocsp.Req;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
-import javax.servlet.http.HttpServletRequest;
 import java.util.List;
 import java.util.Map;
 
@@ -80,7 +78,7 @@ public class PromptTypeController {
     @PostMapping("/getPromptType")
     public Result getPromptType(){
         try {
-            List<PromptTypeMster> list = promptTypeService.getPromptType();
+            List<PromptTypeMaster> list = promptTypeService.getPromptType();
             return Result.success("sucess",list);
         }catch (Exception e){
             e.printStackTrace();

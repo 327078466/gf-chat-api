@@ -90,6 +90,9 @@ public class WebSocketServer {
         if(!prompt.equals("0")){
             List<Message> messages = new ArrayList<>();
             PromptType load = promptTypeService.load(Integer.valueOf(prompt));
+            // 设置当选择后自动加一
+            load.setChoiceNum(Integer.valueOf(load.getChoiceNum()) + 1 +"");
+            promptTypeService.update(load);
             Message message = new Message();
             message.setContent(load.getContentZh());
             message.setRole(Message.Role.SYSTEM.getName());

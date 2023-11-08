@@ -1,7 +1,7 @@
 package cn.aezo.chat_gpt.service;
 
 import cn.aezo.chat_gpt.entity.PromptType;
-import cn.aezo.chat_gpt.entity.PromptTypeMster;
+import cn.aezo.chat_gpt.entity.PromptTypeMaster;
 
 import java.util.List;
 import java.util.Map;
@@ -48,7 +48,7 @@ public interface PromptTypeService {
 
     int cannelFavoritePrompt(String userId, String id);
 
-    List<PromptTypeMster> getPromptType();
+    List<PromptTypeMaster> getPromptType();
 
     List<PromptType> getPromptById(String id);
 }

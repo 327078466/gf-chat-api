@@ -6,7 +6,7 @@ import java.util.List;
 
 /**
  * @Version 1.0
- * @Classname PromptTypeMster
+ * @Classname PromptTypeMaster
  * @Description
  * @Date 2023/11/5
  * @Created by 陈冰峰
@@ -17,7 +17,7 @@ import java.util.List;
 @ToString
 @EqualsAndHashCode
 @Data
-public class PromptTypeMster {
+public class PromptTypeMaster {
 
     private Integer id;
 

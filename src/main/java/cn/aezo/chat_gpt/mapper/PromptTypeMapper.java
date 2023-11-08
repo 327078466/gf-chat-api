@@ -1,7 +1,7 @@
 package cn.aezo.chat_gpt.mapper;
 
 import cn.aezo.chat_gpt.entity.PromptType;
-import cn.aezo.chat_gpt.entity.PromptTypeMster;
+import cn.aezo.chat_gpt.entity.PromptTypeMaster;
 import org.apache.ibatis.annotations.Param;
 
 import java.util.List;
@@ -67,8 +67,10 @@ public interface PromptTypeMapper {
 
     int checkFavoritePrompt(@Param("userId") String userId, @Param("id") String id);
 
-    List<PromptTypeMster> getPromptType();
+    List<PromptTypeMaster> getPromptType();
 
     List<PromptType> getPromptById( String id);
+
+    List<PromptType> selectHotByChoiceNum();
 
 }

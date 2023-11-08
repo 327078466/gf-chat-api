@@ -1,7 +1,7 @@
 package cn.aezo.chat_gpt.service.impl;
 
 import cn.aezo.chat_gpt.entity.PromptType;
-import cn.aezo.chat_gpt.entity.PromptTypeMster;
+import cn.aezo.chat_gpt.entity.PromptTypeMaster;
 import cn.aezo.chat_gpt.mapper.PromptTypeMapper;
 import cn.aezo.chat_gpt.service.PromptTypeService;
 import cn.dev33.satoken.stp.StpUtil;
@@ -102,11 +102,18 @@ public class PromptTypeServiceImpl implements PromptTypeService {
     }
 
     @Override
-    public List<PromptTypeMster> getPromptType() {
-        List<PromptTypeMster> promptType = promptTypeMapper.getPromptType();
-        promptType.stream().forEach(
-                item ->{List<PromptType> promptById = promptTypeMapper.getPromptById(item.getId() + "");
-                    item.setItemList(promptById);});
+    public List<PromptTypeMaster> getPromptType() {
+        List<PromptTypeMaster> promptType = promptTypeMapper.getPromptType();
+        // 点击量最高的放第一个常用
+        List<PromptType> list = promptTypeMapper.selectHotByChoiceNum();
+        promptType.stream().forEach(item ->{
+            if(item.getId() == 1){ // 常用
+                item.setItemList(list);
+            }else {
+                List<PromptType> promptById = promptTypeMapper.getPromptById(item.getId() + "");
+                item.setItemList(promptById);
+            }
+        });
         return  promptType;
     }
 
