@@ -141,10 +141,10 @@ public class WebSocketServer {
             return;
         }
 //        过滤敏感词
-        if(SensitiveWordHelper.contains(msg)){
-            session.getBasicRemote().sendText("问题中出现敏感词，请重新输入");
-            return;
-        }
+//        if(SensitiveWordHelper.contains(msg)){
+//            session.getBasicRemote().sendText("问题中出现敏感词，请重新输入");
+//            return;
+//        }
         Result result = WebSocketServer.ChatService.checkAndUpdateAsset(this.uid);
         if(Result.isFailure(result)) {
             session.getBasicRemote().sendText(getErrorMsg(result.getMessage(), result.getCodeKey()));
