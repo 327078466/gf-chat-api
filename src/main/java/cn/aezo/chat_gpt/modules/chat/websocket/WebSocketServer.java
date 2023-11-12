@@ -7,13 +7,20 @@ import cn.aezo.chat_gpt.util.MiscU;
 import cn.aezo.chat_gpt.util.Result;
 import cn.aezo.chat_gpt.util.SpringU;
 import cn.hutool.core.util.StrUtil;
+import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
-import com.github.houbb.sensitive.word.core.SensitiveWordHelper;
+import com.unfbx.chatgpt.OpenAiClient;
 import com.unfbx.chatgpt.OpenAiStreamClient;
 import com.unfbx.chatgpt.entity.chat.ChatCompletion;
 import com.unfbx.chatgpt.entity.chat.Message;
+import com.unfbx.chatgpt.entity.images.Image;
+import com.unfbx.chatgpt.entity.images.ImageResponse;
+import com.unfbx.chatgpt.entity.images.Item;
+import com.unfbx.chatgpt.entity.images.SizeEnum;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+import okhttp3.sse.EventSource;
+import okhttp3.sse.EventSources;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
@@ -26,8 +33,10 @@ import javax.websocket.Session;
 import javax.websocket.SessionException;
 import javax.websocket.server.PathParam;
 import javax.websocket.server.ServerEndpoint;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArraySet;
@@ -35,11 +44,12 @@ import java.util.concurrent.CopyOnWriteArraySet;
 /**
  * 通过WSS等流式响应时，可选择模型gpt-3.5-turbo<br/>
  * 更多模型参考<br/>
+ *
  * @see com.unfbx.chatgpt.entity.chat.ChatCompletion.Model
  */
 @Slf4j
 @Component
-@ServerEndpoint("/tools/chat/user/{uid}/{mode}/{prompt}")
+@ServerEndpoint("/tools/chat/user/{uid}/{mode}/{value1}/{value2}")
 public class WebSocketServer {
 
     private static OpenAiStreamClient OpenAiStreamClient;
@@ -47,11 +57,14 @@ public class WebSocketServer {
 
     private static PromptTypeService promptTypeService;
 
+    private static OpenAiClient openAiClient;
+
     @Autowired
-    public void setOrderService(OpenAiStreamClient openAiStreamClient, ChatService chatService,PromptTypeService promptTypeService) {
+    public void setOrderService(OpenAiStreamClient openAiStreamClient, OpenAiClient openAiClient, ChatService chatService, PromptTypeService promptTypeService) {
         WebSocketServer.OpenAiStreamClient = openAiStreamClient;
         WebSocketServer.ChatService = chatService;
         WebSocketServer.promptTypeService = promptTypeService;
+        WebSocketServer.openAiClient = openAiClient;
     }
 
     //在线总数
@@ -63,7 +76,10 @@ public class WebSocketServer {
     // 请求模式（M1 GPT3.5  M2 GPT3.5高级 M3 GPT4.0）
     private String mode;
     // 提示词限定角色
-    private String prompt;
+    private String value1;
+
+    private String value2;
+
 
     private static CopyOnWriteArraySet<WebSocketServer> WebSocketSet = new CopyOnWriteArraySet<>();
 
@@ -79,19 +95,23 @@ public class WebSocketServer {
 
     /**
      * 建立连接
+     *
      * @param session
      * @param uid
      */
     @OnOpen
-    public void onOpen(Session session, @PathParam("uid") String uid,@PathParam("mode") String mode,@PathParam("prompt") String prompt) {
+    public void onOpen(Session session, @PathParam("uid") String uid, @PathParam("mode") String mode, @PathParam("value1") String value1, @PathParam("value2") String value2) {
         this.session = session;
         this.uid = uid;
         this.mode = mode;
-        if(!prompt.equals("0")){
+        this.value1 = value1;
+        this.value2 = value2;
+        // 模式为对话模式 并且 非默认提示词
+        if (this.mode.equals("1") && !value2.equals("0")) {
             List<Message> messages = new ArrayList<>();
-            PromptType load = promptTypeService.load(Integer.valueOf(prompt));
+            PromptType load = promptTypeService.load(Integer.valueOf(value2));
             // 设置当选择后自动加一
-            load.setChoiceNum(Integer.valueOf(load.getChoiceNum()) + 1 +"");
+            load.setChoiceNum(Integer.valueOf(load.getChoiceNum()) + 1 + "");
             promptTypeService.update(load);
             Message message = new Message();
             message.setContent(load.getContentZh());
@@ -99,7 +119,6 @@ public class WebSocketServer {
             messages.add(message);
             MessageLocalCache.CACHE.put(uid, JSONUtil.toJsonStr(messages), MessageLocalCache.TIMEOUT);
         }
-
         WebSocketServer.WebSocketSet.add(this);
         WebSocketServer.SESSIONS.add(session);
         if (WebSocketServer.WebSocketMap.containsKey(uid)) {
@@ -127,17 +146,18 @@ public class WebSocketServer {
 
     /**
      * 接收到客户端消息
+     *
      * @param msg
      */
     @SneakyThrows
     @OnMessage
     public void onMessage(String msg) {
         log.info("[连接ID:{}] 收到消息:{}", this.uid, msg);
-        if(StrUtil.isBlank(msg)) {
+        if (StrUtil.isBlank(msg)) {
             return;
         }
-        if("PING".equalsIgnoreCase(msg.trim())) {
-            session.getBasicRemote().sendText("PONG");
+        if ("PING".equalsIgnoreCase(msg.trim())) {
+//            session.getBasicRemote().sendText("PONG");
             return;
         }
 //        过滤敏感词
@@ -146,26 +166,28 @@ public class WebSocketServer {
 //            return;
 //        }
         Result result = WebSocketServer.ChatService.checkAndUpdateAsset(this.uid);
-        if(Result.isFailure(result)) {
+        if (Result.isFailure(result)) {
             session.getBasicRemote().sendText(getErrorMsg(result.getMessage(), result.getCodeKey()));
             return;
         }
         Environment environment = SpringU.getBean(Environment.class);
-        if("false".equals(environment.getProperty("sq-mini-tools.openai.enable"))) {
+        if ("false".equals(environment.getProperty("sq-mini-tools.openai.enable"))) {
             session.getBasicRemote().sendText("此为模拟返回数据...");
             return;
         }
         String mode = WebSocketServer.WebSocketMap.get(this.uid).mode;
+        String value11 = WebSocketServer.WebSocketMap.get(this.uid).value1;
+        String value12 = WebSocketServer.WebSocketMap.get(this.uid).value2;
+        List<Message> messages = new ArrayList<>();
         //接受参数
         OpenAIWebSocketEventSourceListener eventSourceListener = new OpenAIWebSocketEventSourceListener(this.session);
         String messageContext = (String) MessageLocalCache.CACHE.get(uid);
-        List<Message> messages = new ArrayList<>();
         if (StrUtil.isNotBlank(messageContext)) {
             messages = JSONUtil.toList(messageContext, Message.class);
             if (messages.size() >= 10) {
                 Message message = messages.get(0); // 第一句话保留 可能是角色定义
                 messages = messages.subList(1, 10);
-                messages.add(0,message); // 第一位设置
+                messages.add(0, message); // 第一位设置
             }
             Message currentMessage = Message.builder().content(msg).role(Message.Role.USER).build();
             messages.add(currentMessage);
@@ -173,26 +195,71 @@ public class WebSocketServer {
             Message currentMessage = Message.builder().content(msg).role(Message.Role.USER).build();
             messages.add(currentMessage);
         }
-        ChatCompletion chatCompletion = ChatCompletion.builder().messages(messages).stream(true).model(ChatCompletion.Model.GPT_3_5_TURBO_0613.getName()).build();
-        // 设置请求模型
-        if(mode.equals("2")){
-             chatCompletion = ChatCompletion.builder().messages(messages).stream(true).model(ChatCompletion.Model.GPT_4_0314.getName()).build();
-        }else if(mode.equals("3")){
-             chatCompletion = ChatCompletion.builder().messages(messages).stream(true).model(ChatCompletion.Model.GPT_4_32K_0613.getName()).build();
+        if (mode.equals("1")) { // 对话模式
+            ChatCompletion chatCompletion = ChatCompletion.builder().messages(messages).stream(true).model(ChatCompletion.Model.GPT_3_5_TURBO_0613.getName()).build();
+            // 设置请求模型
+            if (value11.equals("2")) { // GPT4.0
+                chatCompletion = ChatCompletion.builder().messages(messages).stream(true).model(ChatCompletion.Model.GPT_4_32K_0613.getName()).build();
+            }
+            WebSocketServer.OpenAiStreamClient.streamChatCompletion(chatCompletion, eventSourceListener);
+        } else { // 作图模式
+            Image image = new Image();
+            image.setN(Integer.valueOf(Integer.valueOf(value11)));
+            if (value12.equals("256*256")) {
+                image.setSize(SizeEnum.size_256);
+            } else if (value12.equals("512*512")) {
+                image.setSize(SizeEnum.size_512);
+            } else {
+                image.setSize(SizeEnum.size_1024);
+            }
+            image.setPrompt(msg);
+//            ImageResponse imageResponse = openAiClient.genImages(image);
+//            List<Item> data = imageResponse.getData();
+            HashMap<String, Object> hashMap1 = new HashMap<>();
+            List<String> list = new ArrayList<>();
+            hashMap1.put("content", "");
+            hashMap1.put("role", "assistant");
+            JSONObject entries = new JSONObject();
+            entries.putAll(hashMap1);
+            String dataJson1 = entries.toString();
+            list.add(dataJson1);
+//            data.forEach(item ->{
+//                HashMap<String, Object> hashMap2 = new HashMap<>();
+//                hashMap2.put("content",data.get(0).getUrl());
+//                entries.clear();
+//                entries.putAll(hashMap2);
+//                String dataJson2 = entries.toString();
+//                list.add(dataJson2);
+//            });
+            HashMap<String, Object> hashMap2 = new HashMap<>();
+            hashMap2.put("content", "https://oaidalleapiprodscus.blob.core.windows.net/private/org-vGlEkeCMpT3iJFiYA7Bbb8a5/user-HwFmTlYAdsXujOI1HHO1YgLY/img-JbwLXNEqTZtQfTSDhA2QHCfc.png?st=2023-11-12T11%3A21%3A22Z&se=2023-11-12T13%3A21%3A22Z&sp=r&sv=2021-08-06&sr=b&rscd=inline&rsct=image/png&skoid=6aaadede-4fb3-4698-a8f6-684d7786b067&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2023-11-12T06%3A03%3A33Z&ske=2023-11-13T06%3A03%3A33Z&sks=b&skv=2021-08-06&sig=iHRn3YupE5zOwEonG0VyXEe/OM9RvUXeRgzP7CDsuJE%3D");
+            entries.clear();
+            entries.putAll(hashMap2);
+            String dataJson2 = entries.toString();
+            list.add(dataJson2);
+            String dataJson3 = "[DONE]";
+            list.add(dataJson3);
+            list.forEach(item -> {
+                try {
+                    session.getBasicRemote().sendText(item);
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            });
         }
-        WebSocketServer.OpenAiStreamClient.streamChatCompletion(chatCompletion, eventSourceListener);
         MessageLocalCache.CACHE.put(uid, JSONUtil.toJsonStr(messages), MessageLocalCache.TIMEOUT);
     }
 
     /**
      * 发送错误
+     *
      * @param session
      * @param error
      */
     @OnError
     public void onError(Session session, Throwable error) {
         log.error("[连接ID:{}]", this.uid, error);
-        if(!(error instanceof SessionException)) {
+        if (!(error instanceof SessionException)) {
             try {
                 session.getBasicRemote().sendText(getErrorMsg(StrUtil.format("执行出错"), "chat.ws_error"));
             } catch (Exception e) {

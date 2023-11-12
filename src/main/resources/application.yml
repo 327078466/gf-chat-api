@@ -48,9 +48,9 @@ sq-mini-tools:
   chat:
     regist-num: 10
     daily-free-num: 5
-    invite-num: 10
+    invite-num: 30
     invite-max: 5
-    ads-num: 3
+    ads-num: 30
     ads-max: 10
 
 mybatis-plus:

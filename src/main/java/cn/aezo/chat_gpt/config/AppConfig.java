@@ -1,5 +1,6 @@
 package cn.aezo.chat_gpt.config;
 
+import com.unfbx.chatgpt.OpenAiClient;
 import com.unfbx.chatgpt.OpenAiStreamClient;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.web.client.RestTemplateBuilder;
@@ -65,5 +66,9 @@ public class AppConfig {
     @Bean
     public OpenAiStreamClient openAiStreamClient() {
         return OpenAiStreamClient.builder().apiHost(openApiHost).apiKey(Collections.singletonList(openApiKey)).build();
+    }
+    @Bean
+    public OpenAiClient openAiClient() {
+        return OpenAiClient.builder().apiHost(openApiHost).apiKey(Collections.singletonList(openApiKey)).build();
     }
 }
