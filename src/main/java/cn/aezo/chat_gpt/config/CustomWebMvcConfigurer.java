@@ -23,7 +23,8 @@ public class CustomWebMvcConfigurer implements WebMvcConfigurer {
                             .match("/**")
                             .notMatch("/tools/**")
                             .notMatch("/core/user/login")
-                            .check(r -> StpUtil.checkLogin());
+//                            .check(r -> StpUtil.checkLogin())
+                    ;
                     SaRouter.match("/admin/**", r -> StpUtil.checkPermission("admin"));
                 }))
                 .addPathPatterns("/**");

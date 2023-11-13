@@ -4,6 +4,7 @@ import cn.aezo.chat_gpt.entity.PromptType;
 import cn.aezo.chat_gpt.entity.PromptTypeMaster;
 import cn.aezo.chat_gpt.service.PromptTypeService;
 import cn.aezo.chat_gpt.util.Result;
+import cn.aezo.chat_gpt.handler.VideoHandler;
 import cn.dev33.satoken.stp.StpUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -101,6 +102,4 @@ public class PromptTypeController {
             return Result.error("error");
         }
     }
-
-
 }

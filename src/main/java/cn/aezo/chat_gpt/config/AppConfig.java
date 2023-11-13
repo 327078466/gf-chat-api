@@ -1,5 +1,6 @@
 package cn.aezo.chat_gpt.config;
 
+import cn.aezo.chat_gpt.handler.VideoHandler;
 import com.unfbx.chatgpt.OpenAiClient;
 import com.unfbx.chatgpt.OpenAiStreamClient;
 import org.springframework.beans.factory.annotation.Value;
@@ -70,5 +71,10 @@ public class AppConfig {
     @Bean
     public OpenAiClient openAiClient() {
         return OpenAiClient.builder().apiHost(openApiHost).apiKey(Collections.singletonList(openApiKey)).build();
+    }
+
+    @Bean
+    public VideoHandler videoHandler() {
+        return new VideoHandler();
     }
 }
