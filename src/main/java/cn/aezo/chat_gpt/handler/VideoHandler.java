@@ -92,7 +92,10 @@ public class VideoHandler {
             return responseDataMap;
         } catch (Exception e) {
             e.printStackTrace();
-            return null;
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("code", 201);
+            errorResponse.put("msg", "解析失败");
+            return errorResponse;
         }
     }
 

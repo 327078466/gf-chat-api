@@ -279,7 +279,7 @@ public class WebSocketServer {
         if (msg.contains("pipix")) {
             videoHandler.pipixia(msg);
         } else if (msg.contains("douyin")) {
-             data = videoHandler.douyin(extractedUrl);
+             data = videoHandler.douyin(msg);
         } else if (msg.contains("huoshan")) {
 
         } else if (msg.contains("h5.weishi")) {
