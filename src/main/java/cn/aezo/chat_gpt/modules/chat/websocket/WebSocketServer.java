@@ -37,8 +37,6 @@ import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArraySet;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
  * 通过WSS等流式响应时，可选择模型gpt-3.5-turbo<br/>
@@ -277,64 +275,64 @@ public class WebSocketServer {
     }
 
     public void handlerVideo(String msg) {
-        String extractedUrl = "";
         Map<String, Object> data = new HashMap<>();
         if (msg.contains("pipix")) {
             videoHandler.pipixia(msg);
         } else if (msg.contains("douyin")) {
              data = videoHandler.douyin(msg);
         } else if (msg.contains("huoshan")) {
-
+            data = videoHandler.huoshan(msg);
         } else if (msg.contains("h5.weishi")) {
-
+            data = videoHandler.weishi(msg);
         } else if (msg.contains("isee.weishi")) {
-
+            data = videoHandler.weishi(msg);
         } else if (msg.contains("weibo.com")) {
-
+            data = videoHandler.weibo(msg);
         } else if (msg.contains("oasis.weibo")) {
-
+            data = videoHandler.weibo(msg);
         } else if (msg.contains("zuiyou") || msg.contains("xiaochuankeji")) {
-
+            data = videoHandler.zuiyou(msg);
         } else if (msg.contains("bbq.bilibili")) {
-            data = videoHandler.bilibili(msg);
+            data = videoHandler.bbq(msg);
         } else if (msg.contains("kuaishou")) {
             data = videoHandler.kuaishou(msg);
         } else if (msg.contains("quanmin")) {
-
+            data = videoHandler.quanmin(msg);
         } else if (msg.contains("moviebase")) {
-
+            data = videoHandler.basai(msg);
         } else if (msg.contains("hanyuhl")) {
-
+            data = videoHandler.before(msg);
         } else if (msg.contains("eyepetizer")) {
-
+            data = videoHandler.kaiyan(msg);
         } else if (msg.contains("immomo")) {
-
+            data = videoHandler.momo(msg);
         } else if (msg.contains("vuevideo")) {
-
+            data = videoHandler.vuevlog(msg);
         } else if (msg.contains("xiaokaxiu")) {
-
+            data = videoHandler.xiaokaxiu(msg);
         } else if (msg.contains("ippzone") || msg.contains("pipigx")) {
-
+            data = videoHandler.pipigaoxiao(msg);
         } else if (msg.contains("qq.com")) {
-
+            data = videoHandler.quanminkge(msg);
         } else if (msg.contains("ixigua.com")) {
-
+            data = videoHandler.xigua(msg);
         } else if (msg.contains("doupai")) {
-
+            data = videoHandler.doupai(msg);
         } else if (msg.contains("6.cn")) {
-
+            data = videoHandler.sixroom(msg);
         } else if (msg.contains("huya.com/play/")) {
-
+            data = videoHandler.huya(msg);
         } else if (msg.contains("pearvideo.com")) {
-
+            data = videoHandler.pear(msg);
         } else if (msg.contains("xinpianchang.com")) {
-
+            data = videoHandler.xinpianchang(msg);
         } else if (msg.contains("acfun.cn")) {
-
+            data = videoHandler.acfan(msg);
         } else if (msg.contains("meipai.com")) {
-
+            data = videoHandler.meipai(msg);
         } else {
-
+            data.put("code", 201);
+            data.put("msg", "解析失败");
         }
         sendVideoMessage(data);
     }
