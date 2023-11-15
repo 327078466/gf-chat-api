@@ -163,11 +163,6 @@ public class WebSocketServer {
 //            session.getBasicRemote().sendText("PONG");
             return;
         }
-//        过滤敏感词
-        if(wordTree.isMatch(msg)){
-            session.getBasicRemote().sendText("sensitive");
-            return;
-        }
         Result result = WebSocketServer.ChatService.checkAndUpdateAsset(this.uid);
         if (Result.isFailure(result)) {
             session.getBasicRemote().sendText(getErrorMsg(result.getMessage(), result.getCodeKey()));
@@ -181,6 +176,13 @@ public class WebSocketServer {
         String mode = WebSocketServer.WebSocketMap.get(this.uid).mode;
         String value11 = WebSocketServer.WebSocketMap.get(this.uid).value1;
         String value12 = WebSocketServer.WebSocketMap.get(this.uid).value2;
+//        过滤敏感词
+        if(mode.equals("1") || mode.equals("2")){ // 作图和聊天 敏感词过滤
+            if(wordTree.isMatch(msg)){
+                session.getBasicRemote().sendText("sensitive");
+                return;
+            }
+        }
         //接受参数
         OpenAIWebSocketEventSourceListener eventSourceListener = new OpenAIWebSocketEventSourceListener(this.session);
         String messageContext = (String) MessageLocalCache.CACHE.get(uid + "-" + mode);
