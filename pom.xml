@@ -105,12 +105,6 @@
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
-<!--        敏感词-->
-        <dependency>
-            <groupId>com.github.houbb</groupId>
-            <artifactId>sensitive-word</artifactId>
-            <version>0.8.0</version>
-        </dependency>
     </dependencies>
 
     <build>

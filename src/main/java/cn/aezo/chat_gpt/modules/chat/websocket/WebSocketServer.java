@@ -8,6 +8,7 @@ import cn.aezo.chat_gpt.util.Result;
 import cn.aezo.chat_gpt.util.SpringU;
 import cn.aezo.chat_gpt.handler.VideoHandler;
 import cn.hutool.core.util.StrUtil;
+import cn.hutool.dfa.WordTree;
 import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
 import com.unfbx.chatgpt.OpenAiClient;
@@ -59,13 +60,16 @@ public class WebSocketServer {
 
     private static VideoHandler videoHandler;
 
+    private static WordTree wordTree;
+
     @Autowired
-    public void setOrderService(OpenAiStreamClient openAiStreamClient, OpenAiClient openAiClient, ChatService chatService, PromptTypeService promptTypeService,VideoHandler videoHandler) {
+    public void setOrderService(OpenAiStreamClient openAiStreamClient, OpenAiClient openAiClient, ChatService chatService, PromptTypeService promptTypeService,VideoHandler videoHandler,WordTree wordTree) {
         WebSocketServer.OpenAiStreamClient = openAiStreamClient;
         WebSocketServer.ChatService = chatService;
         WebSocketServer.promptTypeService = promptTypeService;
         WebSocketServer.openAiClient = openAiClient;
-        this.videoHandler = videoHandler;
+        WebSocketServer.videoHandler = videoHandler;
+        WebSocketServer.wordTree = wordTree;
     }
 
     //在线总数
@@ -162,10 +166,10 @@ public class WebSocketServer {
             return;
         }
 //        过滤敏感词
-//        if(SensitiveWordHelper.contains(msg)){
-//            session.getBasicRemote().sendText("问题中出现敏感词，请重新输入");
-//            return;
-//        }
+        if(wordTree.isMatch(msg)){
+            session.getBasicRemote().sendText("sensitive");
+            return;
+        }
         Result result = WebSocketServer.ChatService.checkAndUpdateAsset(this.uid);
         if (Result.isFailure(result)) {
             session.getBasicRemote().sendText(getErrorMsg(result.getMessage(), result.getCodeKey()));
@@ -179,7 +183,6 @@ public class WebSocketServer {
         String mode = WebSocketServer.WebSocketMap.get(this.uid).mode;
         String value11 = WebSocketServer.WebSocketMap.get(this.uid).value1;
         String value12 = WebSocketServer.WebSocketMap.get(this.uid).value2;
-
         //接受参数
         OpenAIWebSocketEventSourceListener eventSourceListener = new OpenAIWebSocketEventSourceListener(this.session);
         String messageContext = (String) MessageLocalCache.CACHE.get(uid + "-" + mode);
