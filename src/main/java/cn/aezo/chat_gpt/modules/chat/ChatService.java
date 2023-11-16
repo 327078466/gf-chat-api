@@ -1,5 +1,6 @@
 package cn.aezo.chat_gpt.modules.chat;
 
+import cn.aezo.chat_gpt.entity.UserMsgLog;
 import cn.aezo.chat_gpt.modules.chat.mapper.ChatMapper;
 import cn.aezo.chat_gpt.util.MiscU;
 import cn.aezo.chat_gpt.util.Result;
@@ -162,5 +163,10 @@ public class ChatService {
                 .replaceAll(userId + "：", "")
                 .replaceAll("^\\n|\\n$", "");
         choice.setText(msg);
+    }
+
+    public int saveUserMsgLog(UserMsgLog userMsgLog) {
+
+        return  chatMapper.saveUserMsgLog(userMsgLog);
     }
 }

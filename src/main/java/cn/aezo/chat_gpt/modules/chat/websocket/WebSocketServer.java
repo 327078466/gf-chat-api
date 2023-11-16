@@ -1,6 +1,7 @@
 package cn.aezo.chat_gpt.modules.chat.websocket;
 
 import cn.aezo.chat_gpt.entity.PromptType;
+import cn.aezo.chat_gpt.entity.UserMsgLog;
 import cn.aezo.chat_gpt.modules.chat.ChatService;
 import cn.aezo.chat_gpt.service.PromptTypeService;
 import cn.aezo.chat_gpt.util.MiscU;
@@ -34,6 +35,8 @@ import javax.websocket.SessionException;
 import javax.websocket.server.PathParam;
 import javax.websocket.server.ServerEndpoint;
 import java.io.IOException;
+import java.sql.Timestamp;
+import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArraySet;
@@ -200,6 +203,15 @@ public class WebSocketServer {
             Message currentMessage = Message.builder().content(msg).role(Message.Role.USER).build();
             messages.add(currentMessage);
         }
+        // 到这一步时 向用户日志中插入数据
+        UserMsgLog userMsgLog = new UserMsgLog();
+        userMsgLog.setUserId(uid);
+        userMsgLog.setMsg(msg);
+        userMsgLog.setCreateTime(Timestamp.from(Instant.now()));
+        userMsgLog.setMode(mode);
+        userMsgLog.setModeValue(value11 + "+" + value12);
+        ChatService.saveUserMsgLog(userMsgLog);
+
         if (mode.equals("1")) { // 对话模式
             handlerChat(messages, value11, eventSourceListener);
         } else if (mode.equals("2")) { // 作图模式

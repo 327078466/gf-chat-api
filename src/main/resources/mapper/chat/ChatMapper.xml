@@ -19,4 +19,7 @@
         values(#{ctx.id}, #{ctx.userId}, #{ctx.bizType}, #{ctx.assetType}, #{ctx.asset},
             #{ctx.remark}, #{ctx.userId}, now())
     </insert>
+    <insert id="saveUserMsgLog">
+        insert into mt_user_msg(user_id,mode,msg,create_time,mode_value) values (#{userId},#{mode},#{msg},#{createTime},#{modeValue})
+    </insert>
 </mapper>
