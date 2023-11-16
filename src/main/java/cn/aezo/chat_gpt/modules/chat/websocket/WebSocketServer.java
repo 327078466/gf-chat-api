@@ -2,7 +2,9 @@ package cn.aezo.chat_gpt.modules.chat.websocket;
 
 import cn.aezo.chat_gpt.entity.PromptType;
 import cn.aezo.chat_gpt.entity.UserMsgLog;
+import cn.aezo.chat_gpt.handler.ImageHandler;
 import cn.aezo.chat_gpt.modules.chat.ChatService;
+import cn.aezo.chat_gpt.service.OssService;
 import cn.aezo.chat_gpt.service.PromptTypeService;
 import cn.aezo.chat_gpt.util.MiscU;
 import cn.aezo.chat_gpt.util.Result;
@@ -12,9 +14,11 @@ import cn.hutool.core.util.StrUtil;
 import cn.hutool.dfa.WordTree;
 import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.unfbx.chatgpt.OpenAiClient;
 import com.unfbx.chatgpt.OpenAiStreamClient;
 import com.unfbx.chatgpt.entity.chat.ChatCompletion;
+import com.unfbx.chatgpt.entity.chat.ChatCompletionResponse;
 import com.unfbx.chatgpt.entity.chat.Message;
 import com.unfbx.chatgpt.entity.images.Image;
 import com.unfbx.chatgpt.entity.images.ImageResponse;
@@ -25,6 +29,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
+import org.springframework.web.multipart.MultipartFile;
 
 import javax.websocket.OnClose;
 import javax.websocket.OnError;
@@ -34,6 +39,8 @@ import javax.websocket.Session;
 import javax.websocket.SessionException;
 import javax.websocket.server.PathParam;
 import javax.websocket.server.ServerEndpoint;
+import java.awt.image.BufferedImage;
+import java.io.File;
 import java.io.IOException;
 import java.sql.Timestamp;
 import java.time.Instant;
@@ -63,14 +70,17 @@ public class WebSocketServer {
 
     private static WordTree wordTree;
 
+    private static OssService ossService;
+
     @Autowired
-    public void setOrderService(OpenAiStreamClient openAiStreamClient, OpenAiClient openAiClient, ChatService chatService, PromptTypeService promptTypeService,VideoHandler videoHandler,WordTree wordTree) {
+    public void setOrderService(OpenAiStreamClient openAiStreamClient, OpenAiClient openAiClient, ChatService chatService, PromptTypeService promptTypeService,VideoHandler videoHandler,WordTree wordTree,OssService ossService) {
         WebSocketServer.OpenAiStreamClient = openAiStreamClient;
         WebSocketServer.ChatService = chatService;
         WebSocketServer.promptTypeService = promptTypeService;
         WebSocketServer.openAiClient = openAiClient;
         WebSocketServer.videoHandler = videoHandler;
         WebSocketServer.wordTree = wordTree;
+        WebSocketServer.ossService = ossService;
     }
 
     //在线总数
@@ -122,6 +132,13 @@ public class WebSocketServer {
             Message message = new Message();
             message.setContent(load.getContentZh());
             message.setRole(Message.Role.SYSTEM.getName());
+            messages.add(message);
+            MessageLocalCache.CACHE.put(uid + "-" + mode, JSONUtil.toJsonStr(messages), MessageLocalCache.TIMEOUT);
+        }else if(this.mode.equals("5")){ // 证件照
+            List<Message> messages = new ArrayList<>();
+            Message message = new Message();
+            message.setRole(Message.Role.SYSTEM.getName());
+            message.setContent("我现在需要你帮我分析一些话 你只需要告诉我这段话中我需要什么颜色 只需要回复16进制RGB颜色值，如果你分析不出来就回复，异常");
             messages.add(message);
             MessageLocalCache.CACHE.put(uid + "-" + mode, JSONUtil.toJsonStr(messages), MessageLocalCache.TIMEOUT);
         }
@@ -190,19 +207,6 @@ public class WebSocketServer {
         OpenAIWebSocketEventSourceListener eventSourceListener = new OpenAIWebSocketEventSourceListener(this.session);
         String messageContext = (String) MessageLocalCache.CACHE.get(uid + "-" + mode);
         List<Message> messages = new ArrayList<>();
-        if (StrUtil.isNotBlank(messageContext)) {
-            messages = JSONUtil.toList(messageContext, Message.class);
-            if (messages.size() >= 10) {
-                Message message = messages.get(0); // 第一句话保留 可能是角色定义
-                messages = messages.subList(1, 10);
-                messages.add(0, message); // 第一位设置
-            }
-            Message currentMessage = Message.builder().content(msg).role(Message.Role.USER).build();
-            messages.add(currentMessage);
-        } else {
-            Message currentMessage = Message.builder().content(msg).role(Message.Role.USER).build();
-            messages.add(currentMessage);
-        }
         // 到这一步时 向用户日志中插入数据
         UserMsgLog userMsgLog = new UserMsgLog();
         userMsgLog.setUserId(uid);
@@ -211,8 +215,17 @@ public class WebSocketServer {
         userMsgLog.setMode(mode);
         userMsgLog.setModeValue(value11 + "+" + value12);
         ChatService.saveUserMsgLog(userMsgLog);
-
+        if (StrUtil.isNotBlank(messageContext)) {
+            messages = JSONUtil.toList(messageContext, Message.class);
+            if (messages.size() >= 10) {
+                Message message = messages.get(0); // 第一句话保留 可能是角色定义
+                messages = messages.subList(1, 10);
+                messages.add(0, message); // 第一位设置
+            }
+        }
         if (mode.equals("1")) { // 对话模式
+            Message currentMessage = Message.builder().content(msg).role(Message.Role.USER).build();
+            messages.add(currentMessage);
             handlerChat(messages, value11, eventSourceListener);
         } else if (mode.equals("2")) { // 作图模式
             handlerDraw(value11, value12, msg);
@@ -220,6 +233,55 @@ public class WebSocketServer {
             // 解析请求信息
             handlerVideo(msg);
         } else if (mode.equals("4")) { // 处理文字录音
+
+
+        }else if (mode.equals("5")) { // 解析证件照图片
+            String[] split = msg.split("----");
+            Message currentMessage = Message.builder().content(split[0]).role(Message.Role.USER).build();
+            messages.add(currentMessage);
+            ChatCompletionResponse completionResponse = openAiClient.chatCompletion(messages);
+            ObjectMapper mapper = new ObjectMapper();
+            String content = completionResponse.getChoices().get(0).getDelta().getContent();
+            if(content.equals("异常")){
+                HashMap<String, Object> hashMap1 = new HashMap<>();
+                hashMap1.put("content",  "解析失败，请重新描述");
+                hashMap1.put("role", "assistant");
+                JSONObject entries = new JSONObject();
+                entries.putAll(hashMap1);
+                String dataJson1 = entries.toString();
+                try {
+                    session.getBasicRemote().sendText(dataJson1);
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            }else {
+                MultipartFile multipartFile = ImageHandler.handleBufferImageBackgroundRGB(split[1], Integer.valueOf(content), true);
+                String s = ossService.uploadFileAvatar(multipartFile);
+                HashMap<String, Object> hashMap1 = new HashMap<>();
+                List<String> list = new ArrayList<>();
+                hashMap1.put("content", "");
+                hashMap1.put("role", "assistant");
+                JSONObject entries = new JSONObject();
+                entries.putAll(hashMap1);
+                String dataJson1 = entries.toString();
+                list.add(dataJson1);
+                HashMap<String, Object> hashMap2 = new HashMap<>();
+                hashMap2.put("content", s);
+                entries.clear();
+                entries.putAll(hashMap2);
+                String dataJson2 = entries.toString();
+                list.add(dataJson2);
+                String dataJson3 = "[DONE]";
+                list.add(dataJson3);
+                list.forEach(item -> {
+                    try {
+                        session.getBasicRemote().sendText(item);
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                });
+            }
+        }else if (mode.equals("6")) { // 解析证件照图片
 
         }
         MessageLocalCache.CACHE.put(uid + "-" + mode, JSONUtil.toJsonStr(messages), MessageLocalCache.TIMEOUT);
