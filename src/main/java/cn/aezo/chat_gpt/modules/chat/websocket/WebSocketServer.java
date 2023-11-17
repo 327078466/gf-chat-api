@@ -3,6 +3,7 @@ package cn.aezo.chat_gpt.modules.chat.websocket;
 import cn.aezo.chat_gpt.entity.PromptType;
 import cn.aezo.chat_gpt.entity.UserMsgLog;
 import cn.aezo.chat_gpt.handler.ImageHandler;
+import cn.aezo.chat_gpt.handler.ImageHandler3;
 import cn.aezo.chat_gpt.modules.chat.ChatService;
 import cn.aezo.chat_gpt.service.OssService;
 import cn.aezo.chat_gpt.service.PromptTypeService;
@@ -243,7 +244,7 @@ public class WebSocketServer {
                 String dataJson1 = entries.toString();
                 session.getBasicRemote().sendText(dataJson1);
             } else {
-                MultipartFile multipartFile = ImageHandler.handleBufferImageBackgroundRGB(split[1], content);
+                MultipartFile multipartFile = ImageHandler3.handleBufferImageBackgroundRGB(split[1], content);
                 String s = ossService.uploadFileAvatar(multipartFile);
                 HashMap<String, Object> hashMap1 = new HashMap<>();
                 List<String> list = new ArrayList<>();
