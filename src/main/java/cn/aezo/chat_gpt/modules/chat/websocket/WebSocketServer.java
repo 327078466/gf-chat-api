@@ -14,11 +14,9 @@ import cn.hutool.core.util.StrUtil;
 import cn.hutool.dfa.WordTree;
 import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.unfbx.chatgpt.OpenAiClient;
 import com.unfbx.chatgpt.OpenAiStreamClient;
 import com.unfbx.chatgpt.entity.chat.ChatCompletion;
-import com.unfbx.chatgpt.entity.chat.ChatCompletionResponse;
 import com.unfbx.chatgpt.entity.chat.Message;
 import com.unfbx.chatgpt.entity.images.Image;
 import com.unfbx.chatgpt.entity.images.ImageResponse;
@@ -39,12 +37,14 @@ import javax.websocket.Session;
 import javax.websocket.SessionException;
 import javax.websocket.server.PathParam;
 import javax.websocket.server.ServerEndpoint;
+import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.*;
+import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArraySet;
 
@@ -73,7 +73,7 @@ public class WebSocketServer {
     private static OssService ossService;
 
     @Autowired
-    public void setOrderService(OpenAiStreamClient openAiStreamClient, OpenAiClient openAiClient, ChatService chatService, PromptTypeService promptTypeService,VideoHandler videoHandler,WordTree wordTree,OssService ossService) {
+    public void setOrderService(OpenAiStreamClient openAiStreamClient, OpenAiClient openAiClient, ChatService chatService, PromptTypeService promptTypeService, VideoHandler videoHandler, WordTree wordTree, OssService ossService) {
         WebSocketServer.OpenAiStreamClient = openAiStreamClient;
         WebSocketServer.ChatService = chatService;
         WebSocketServer.promptTypeService = promptTypeService;
@@ -134,11 +134,11 @@ public class WebSocketServer {
             message.setRole(Message.Role.SYSTEM.getName());
             messages.add(message);
             MessageLocalCache.CACHE.put(uid + "-" + mode, JSONUtil.toJsonStr(messages), MessageLocalCache.TIMEOUT);
-        }else if(this.mode.equals("5")){ // 证件照
+        } else if (this.mode.equals("5")) { // 证件照
             List<Message> messages = new ArrayList<>();
             Message message = new Message();
             message.setRole(Message.Role.SYSTEM.getName());
-            message.setContent("我现在需要你帮我分析一些话 你只需要告诉我这段话中我需要什么颜色 只需要回复16进制RGB颜色值，如果你分析不出来就回复，异常");
+            message.setContent("你现在是一名专业的颜色分析师 我会给你一段文本 你告诉我这段文本表达想要的颜色 只需要回复rgb颜色对饮的值 例如 白色255,255,255 你只需要回复我 255,255,255 如果你分析不出来 回复给我两个字 异常");
             messages.add(message);
             MessageLocalCache.CACHE.put(uid + "-" + mode, JSONUtil.toJsonStr(messages), MessageLocalCache.TIMEOUT);
         }
@@ -196,13 +196,7 @@ public class WebSocketServer {
         String mode = WebSocketServer.WebSocketMap.get(this.uid).mode;
         String value11 = WebSocketServer.WebSocketMap.get(this.uid).value1;
         String value12 = WebSocketServer.WebSocketMap.get(this.uid).value2;
-//        过滤敏感词
-        if(mode.equals("1") || mode.equals("2")){ // 作图和聊天 敏感词过滤
-            if(wordTree.isMatch(msg)){
-                session.getBasicRemote().sendText("sensitive");
-                return;
-            }
-        }
+
         //接受参数
         OpenAIWebSocketEventSourceListener eventSourceListener = new OpenAIWebSocketEventSourceListener(this.session);
         String messageContext = (String) MessageLocalCache.CACHE.get(uid + "-" + mode);
@@ -235,27 +229,21 @@ public class WebSocketServer {
         } else if (mode.equals("4")) { // 处理文字录音
 
 
-        }else if (mode.equals("5")) { // 解析证件照图片
+        } else if (mode.equals("5")) { // 解析证件照图片
             String[] split = msg.split("----");
             Message currentMessage = Message.builder().content(split[0]).role(Message.Role.USER).build();
             messages.add(currentMessage);
-            ChatCompletionResponse completionResponse = openAiClient.chatCompletion(messages);
-            ObjectMapper mapper = new ObjectMapper();
-            String content = completionResponse.getChoices().get(0).getDelta().getContent();
-            if(content.equals("异常")){
+            String content = openAiClient.chatCompletion(messages).getChoices().get(0).getMessage().getContent();
+            if (content.equals("异常")) {
                 HashMap<String, Object> hashMap1 = new HashMap<>();
-                hashMap1.put("content",  "解析失败，请重新描述");
+                hashMap1.put("content", "解析失败，请重新描述");
                 hashMap1.put("role", "assistant");
                 JSONObject entries = new JSONObject();
                 entries.putAll(hashMap1);
                 String dataJson1 = entries.toString();
-                try {
-                    session.getBasicRemote().sendText(dataJson1);
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
-            }else {
-                MultipartFile multipartFile = ImageHandler.handleBufferImageBackgroundRGB(split[1], Integer.valueOf(content), true);
+                session.getBasicRemote().sendText(dataJson1);
+            } else {
+                MultipartFile multipartFile = ImageHandler.handleBufferImageBackgroundRGB(split[1], content);
                 String s = ossService.uploadFileAvatar(multipartFile);
                 HashMap<String, Object> hashMap1 = new HashMap<>();
                 List<String> list = new ArrayList<>();
@@ -279,9 +267,10 @@ public class WebSocketServer {
                     } catch (IOException e) {
                         throw new RuntimeException(e);
                     }
+
                 });
             }
-        }else if (mode.equals("6")) { // 解析证件照图片
+        } else if (mode.equals("6")) { // 解析证件照图片
 
         }
         MessageLocalCache.CACHE.put(uid + "-" + mode, JSONUtil.toJsonStr(messages), MessageLocalCache.TIMEOUT);
@@ -298,7 +287,7 @@ public class WebSocketServer {
         ChatCompletion chatCompletion = ChatCompletion.builder().messages(messages).stream(true).model(ChatCompletion.Model.GPT_3_5_TURBO_0613.getName()).build();
         // 设置请求模型
         if (value11.equals("2")) { // GPT4.0
-            chatCompletion = ChatCompletion.builder().messages(messages).stream(true).model(ChatCompletion.Model.GPT_4_32K_0613.getName()).build();
+            chatCompletion = ChatCompletion.builder().messages(messages).stream(true).model(ChatCompletion.Model.GPT_4_0314.getName()).build();
         }
         WebSocketServer.OpenAiStreamClient.streamChatCompletion(chatCompletion, eventSourceListener);
     }
@@ -350,12 +339,12 @@ public class WebSocketServer {
         });
     }
 
-    public void handlerVideo(String msg) {
+    public void handlerVideo(String msg) throws IOException {
         Map<String, Object> data = new HashMap<>();
         if (msg.contains("pipix")) {
             videoHandler.pipixia(msg);
         } else if (msg.contains("douyin")) {
-             data = videoHandler.douyin(msg);
+            data = videoHandler.douyin(msg);
         } else if (msg.contains("huoshan")) {
             data = videoHandler.huoshan(msg);
         } else if (msg.contains("h5.weishi")) {
@@ -413,12 +402,12 @@ public class WebSocketServer {
         sendVideoMessage(data);
     }
 
-    void sendVideoMessage(Map<String, Object> resultData){
-        if((resultData.get("code") + "").equals("200")){
+    void sendVideoMessage(Map<String, Object> resultData) throws IOException {
+        if ((resultData.get("code") + "").equals("200")) {
             HashMap<String, Object> hashMap1 = new HashMap<>();
             List<String> list = new ArrayList<>();
             HashMap data = (HashMap) resultData.get("data");
-            hashMap1.put("content",  data.get("title"));
+            hashMap1.put("content", data.get("title"));
             hashMap1.put("role", "assistant");
             JSONObject entries = new JSONObject();
             entries.putAll(hashMap1);
@@ -439,20 +428,11 @@ public class WebSocketServer {
                     throw new RuntimeException(e);
                 }
             });
-        }else {
-            HashMap<String, Object> hashMap1 = new HashMap<>();
-            hashMap1.put("content",  "解析失败，请检查链接");
-            hashMap1.put("role", "assistant");
-            JSONObject entries = new JSONObject();
-            entries.putAll(hashMap1);
-            String dataJson1 = entries.toString();
-            try {
-                session.getBasicRemote().sendText(dataJson1);
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
+        } else {
+            session.getBasicRemote().sendText(getErrorMsg(StrUtil.format("执行出错"), "chat.chat.asset_short"));
         }
     }
+
     /**
      * 发送错误
      *
@@ -499,6 +479,8 @@ public class WebSocketServer {
                 "role", "sqchat", "content", msg,
                 "codeKey", codeKey));
     }
+
+
 
 }
 
