@@ -136,6 +136,15 @@ public class UserServiceImpl implements UserService {
         return pass.equals(password);
     }
 
+    @Override
+    public Map<String, Object> getUserInfoByUserName(String username) {
+        Map<String, Object> map = jdbcTemplate.queryForMap(
+                "select id, username, nick_name, user_level, mobile, email, avatar, balance " +
+                        "from mt_user_info ui " +
+                        "where ui.valid_status = 1 and ui.username = ?", username);
+        return map;
+    }
+
     private Result getUserIdByOpenid(String openid, String inviterUserId) {
         // 查询是否存在相应类型的 openid
         List<Map<String, Object>> userOauthList = jdbcTemplate.queryForList(
@@ -173,20 +182,8 @@ public class UserServiceImpl implements UserService {
                 if (inviteToday == null || inviteToday.compareTo(Integer.valueOf(chatinviteMax)) >= 0) {
                     return true;
                 }
-
-                Map<String, Object> inviterMap = jdbcTemplate.queryForMap("select asset, version from mt_user_asset " +
-                        "where valid_status = 1 and biz_type = 'Chat' and asset_type = 'N' and user_id = ?", inviterUserId);
-                ChatMapper chatMapper = SpringU.getBean(ChatMapper.class);
-                BigDecimal asset = NumberUtil.add(new BigDecimal(inviterMap.get("asset").toString()), new BigDecimal(chatinviteNum));
-                int upCount = chatMapper.updateUserAsset(inviterUserId, "N", asset, Integer.valueOf(inviterMap.get("version").toString()));
-                if(upCount > 0) {
-                    upCount = chatMapper.insertUserAssetHis(MiscU.Instance.toMap(
-                            "id", IdUtil.getSnowflakeNextIdStr(), "userId", inviterUserId, "bizType", "Chat",
-                            "assetType", "N", "asset", chatinviteNum, "remark", "邀请新用户获得"));
-                    if(upCount > 0) {
-                        return true;
-                    }
-                }
+                // 更新数据
+                updateAsset(inviterUserId,chatinviteNum,"邀请新用户获得");
                 Thread.sleep(200);
             }
         } catch (Exception e) {
@@ -207,10 +204,20 @@ public class UserServiceImpl implements UserService {
         return username;
     }
 
-    public static void main(String[] args) {
-        String key = "aezo-chat-gpt";
-        String pass = SaSecureUtil.aesEncrypt(key, "123456");
-        pass = SaSecureUtil.sha1(pass);
-        System.out.println("pass = " + pass);
+    public boolean updateAsset(String inviterUserId,String chatinviteNum,String msg){
+        Map<String, Object> inviterMap = jdbcTemplate.queryForMap("select asset, version from mt_user_asset " +
+                "where valid_status = 1 and biz_type = 'Chat' and asset_type = 'N' and user_id = ?", inviterUserId);
+        ChatMapper chatMapper = SpringU.getBean(ChatMapper.class);
+        BigDecimal asset = NumberUtil.add(new BigDecimal(inviterMap.get("asset").toString()), new BigDecimal(chatinviteNum));
+        int upCount = chatMapper.updateUserAsset(inviterUserId, "N", asset, Integer.valueOf(inviterMap.get("version").toString()));
+        if(upCount > 0) {
+            upCount = chatMapper.insertUserAssetHis(MiscU.Instance.toMap(
+                    "id", IdUtil.getSnowflakeNextIdStr(), "userId", inviterUserId, "bizType", "Chat",
+                    "assetType", "N", "asset", chatinviteNum, "remark", msg));
+            if(upCount > 0) {
+                return true;
+            }
+        }
+        return true;
     }
 }

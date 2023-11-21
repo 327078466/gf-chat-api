@@ -21,4 +21,8 @@ public interface UserService {
     String encPassword(String password);
 
     boolean checkPassword(String password, String passwordPure);
+
+    Map<String, Object> getUserInfoByUserName(String username);
+
+    public boolean updateAsset(String inviterUserId,String chatinviteNum,String msg);
 }

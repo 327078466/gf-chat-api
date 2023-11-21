@@ -1,5 +1,5 @@
 server:
-  port: 6501
+  port: 6502
   servlet:
     context-path: /api
 spring:
@@ -43,7 +43,7 @@ sq-mini-tools:
     # 可换成自己的代理地址
     api-host: https://api.chatanywhere.com.cn/
     # 填写自己的 OpenAI key
-#    api-key: sk-0arsnPswF3xx0T8ohzOCeetxsxPFaQqJoLM0jZYMFICaHfxQ
+    #    api-key: sk-0arsnPswF3xx0T8ohzOCeetxsxPFaQqJoLM0jZYMFICaHfxQ
     api-key: sk-1KmU98T8YW3ISy32qv4Tg0qujbLM2wRRedO5d7HeyLZMRWkz
   chat:
     regist-num: 10
@@ -83,15 +83,7 @@ sa-token:
   token-style: uuid
   # 是否输出操作日志
   is-log: false
-
 #阿里云 OSS
-#不同的服务器，地址不同
-#
-#  aliyun.oss.file.endpoint=管控台的endpoint地址
-#  aliyun.oss.file.keyid=accessKeyId
-#  aliyun.oss.file.keysecret=secretKey
-#  #bucket可以在控制台创建，也可以使用java代码创建
-#  aliyun.oss.file.bucketname=你创建的bucket名称
 aliyun:
   oss:
     file:

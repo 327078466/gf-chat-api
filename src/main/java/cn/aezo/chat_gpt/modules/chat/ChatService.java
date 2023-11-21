@@ -2,6 +2,7 @@ package cn.aezo.chat_gpt.modules.chat;
 
 import cn.aezo.chat_gpt.entity.UserMsgLog;
 import cn.aezo.chat_gpt.modules.chat.mapper.ChatMapper;
+import cn.aezo.chat_gpt.service.UserService;
 import cn.aezo.chat_gpt.util.MiscU;
 import cn.aezo.chat_gpt.util.Result;
 import cn.aezo.chat_gpt.util.SpringU;
@@ -48,6 +49,9 @@ public class ChatService {
 
     @Autowired
     private ChatMapper chatMapper;
+
+    @Autowired
+    private UserService userService;
 
     public String chatDirectly(String question, String userId) {
         // 日志输出可以不添加
@@ -168,5 +172,17 @@ public class ChatService {
     public int saveUserMsgLog(UserMsgLog userMsgLog) {
 
         return  chatMapper.saveUserMsgLog(userMsgLog);
+    }
+
+    public Result updateUserChatAsset(String username,String asset) {
+        // 根据用户名查询到user_id
+        Map<String, Object> map = userService.getUserInfoByUserName("mt_" + username.toLowerCase());
+        if(map == null){
+            return Result.error("用户名不正确");
+        }
+        String id = map.get("id") + "";
+        // 进行更新数据
+        userService.updateAsset(id,asset,"领取次数");
+        return Result.success();
     }
 }

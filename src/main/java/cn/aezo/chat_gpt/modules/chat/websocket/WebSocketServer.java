@@ -2,6 +2,7 @@ package cn.aezo.chat_gpt.modules.chat.websocket;
 
 import cn.aezo.chat_gpt.entity.PromptType;
 import cn.aezo.chat_gpt.entity.UserMsgLog;
+//import cn.aezo.chat_gpt.handler.ImageHandler;
 import cn.aezo.chat_gpt.handler.ImageHandler;
 import cn.aezo.chat_gpt.modules.chat.ChatService;
 import cn.aezo.chat_gpt.service.OssService;
@@ -14,6 +15,7 @@ import cn.hutool.core.util.StrUtil;
 import cn.hutool.dfa.WordTree;
 import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
+import com.github.houbb.sensitive.word.core.SensitiveWordHelper;
 import com.unfbx.chatgpt.OpenAiClient;
 import com.unfbx.chatgpt.OpenAiStreamClient;
 import com.unfbx.chatgpt.entity.chat.ChatCompletion;
@@ -68,18 +70,16 @@ public class WebSocketServer {
 
     private static VideoHandler videoHandler;
 
-    private static WordTree wordTree;
 
     private static OssService ossService;
 
     @Autowired
-    public void setOrderService(OpenAiStreamClient openAiStreamClient, OpenAiClient openAiClient, ChatService chatService, PromptTypeService promptTypeService, VideoHandler videoHandler, WordTree wordTree, OssService ossService) {
+    public void setOrderService(OpenAiStreamClient openAiStreamClient, OpenAiClient openAiClient, ChatService chatService, PromptTypeService promptTypeService, VideoHandler videoHandler, OssService ossService) {
         WebSocketServer.OpenAiStreamClient = openAiStreamClient;
         WebSocketServer.ChatService = chatService;
         WebSocketServer.promptTypeService = promptTypeService;
         WebSocketServer.openAiClient = openAiClient;
         WebSocketServer.videoHandler = videoHandler;
-        WebSocketServer.wordTree = wordTree;
         WebSocketServer.ossService = ossService;
     }
 
@@ -197,6 +197,12 @@ public class WebSocketServer {
         String value11 = WebSocketServer.WebSocketMap.get(this.uid).value1;
         String value12 = WebSocketServer.WebSocketMap.get(this.uid).value2;
 
+        if(mode.equals("1")  || mode.equals("2")){
+            if (SensitiveWordHelper.contains(msg)) {
+                session.getBasicRemote().sendText("您的问含有敏感词哦，请换个方式～");
+                return;
+            }
+        }
         //接受参数
         OpenAIWebSocketEventSourceListener eventSourceListener = new OpenAIWebSocketEventSourceListener(this.session);
         String messageContext = (String) MessageLocalCache.CACHE.get(uid + "-" + mode);
