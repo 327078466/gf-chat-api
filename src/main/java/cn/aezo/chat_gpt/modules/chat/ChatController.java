@@ -51,4 +51,12 @@ public class ChatController {
     public Result getUserChatAsset() {
         return chatService.getUserChatAsset();
     }
+
+
+    @RequestMapping("/updateUserChatAsset")
+    public Result updateUserChatAsset(String username,String asset) {
+        return chatService.updateUserChatAsset(username,asset);
+    }
+
+
 }

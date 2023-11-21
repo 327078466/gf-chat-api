@@ -9,7 +9,7 @@ import org.springframework.util.ResourceUtils;
 
 import java.io.*;
 
-@Configuration
+//@Configuration
 public class HutoolWordTreeInit {
 
     @Bean
