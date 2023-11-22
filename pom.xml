@@ -127,7 +127,6 @@
             <artifactId>spring-test</artifactId>
             <version>5.3.7</version> <!-- 适用于 Java 8 的版本 -->
         </dependency>
-
         <dependency>
             <groupId>com.aliyun.oss</groupId>
             <artifactId>aliyun-sdk-oss</artifactId>
@@ -145,6 +144,7 @@
             <scope>system</scope>
             <systemPath>${project.basedir}/lib/opencv-454.jar</systemPath>
         </dependency>
+        <!-- https://mvnrepository.com/artifact/org.bytedeco/javacv -->
     </dependencies>
 
     <build>

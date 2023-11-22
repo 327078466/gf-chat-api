@@ -1,6 +1,7 @@
 package cn.aezo.chat_gpt.service.impl;
 
 import cn.aezo.chat_gpt.config.SqWxConfig;
+import cn.aezo.chat_gpt.modules.chat.ChatService;
 import cn.aezo.chat_gpt.modules.chat.mapper.ChatMapper;
 import cn.aezo.chat_gpt.service.UserService;
 import cn.aezo.chat_gpt.config.BizException;

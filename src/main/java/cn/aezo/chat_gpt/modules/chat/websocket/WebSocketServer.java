@@ -3,7 +3,6 @@ package cn.aezo.chat_gpt.modules.chat.websocket;
 import cn.aezo.chat_gpt.entity.PromptType;
 import cn.aezo.chat_gpt.entity.UserMsgLog;
 //import cn.aezo.chat_gpt.handler.ImageHandler;
-import cn.aezo.chat_gpt.handler.ImageHandler;
 import cn.aezo.chat_gpt.handler.ImageHandler3;
 import cn.aezo.chat_gpt.modules.chat.ChatService;
 import cn.aezo.chat_gpt.service.OssService;
@@ -13,7 +12,6 @@ import cn.aezo.chat_gpt.util.Result;
 import cn.aezo.chat_gpt.util.SpringU;
 import cn.aezo.chat_gpt.handler.VideoHandler;
 import cn.hutool.core.util.StrUtil;
-import cn.hutool.dfa.WordTree;
 import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
 import com.github.houbb.sensitive.word.core.SensitiveWordHelper;
@@ -40,9 +38,6 @@ import javax.websocket.Session;
 import javax.websocket.SessionException;
 import javax.websocket.server.PathParam;
 import javax.websocket.server.ServerEndpoint;
-import java.awt.*;
-import java.awt.image.BufferedImage;
-import java.io.File;
 import java.io.IOException;
 import java.sql.Timestamp;
 import java.time.Instant;
@@ -139,7 +134,7 @@ public class WebSocketServer {
             List<Message> messages = new ArrayList<>();
             Message message = new Message();
             message.setRole(Message.Role.SYSTEM.getName());
-            message.setContent("你现在是一名专业的颜色分析师 我会给你一段文本 你告诉我这段文本表达想要的颜色 只需要回复rgb颜色对饮的值 例如 白色255,255,255 你只需要回复我 255,255,255 如果你分析不出来 回复给我两个字 异常");
+            message.setContent("你现在是一名专业的颜色分析师 我会给你一段文本 你告诉我这段文本表达想要的颜色 只需要回复rgb颜色对应的值 例如 红色255,0,0 你只需要回复我 255,0,0 如果你分析不出来 回复给我两个字 异常");
             messages.add(message);
             MessageLocalCache.CACHE.put(uid + "-" + mode, JSONUtil.toJsonStr(messages), MessageLocalCache.TIMEOUT);
         }
@@ -250,7 +245,7 @@ public class WebSocketServer {
                 String dataJson1 = entries.toString();
                 session.getBasicRemote().sendText(dataJson1);
             } else {
-                MultipartFile multipartFile = ImageHandler3.handleBufferImageBackgroundRGB(split[1], content);
+                MultipartFile multipartFile = ImageHandler3.handleBufferImageBackgroundRGB(split[1],content);
                 String s = ossService.uploadFileAvatar(multipartFile);
                 HashMap<String, Object> hashMap1 = new HashMap<>();
                 List<String> list = new ArrayList<>();
