@@ -88,6 +88,6 @@ aliyun:
   oss:
     file:
       endpoint: oss-cn-beijing.aliyuncs.com
-      keyid: LTAI5tPtGkUQaXMCTafv7tGG
-      keysecret: xS5BS5WHMR2hc0rNFqppMmmsNczU1z
+      keyid: LTAI5tPtGkUQaXMCTafv7tGG1
+      keysecret: xS5BS5WHMR2hc0rNFqppMmmsNczU1z1
       bucketname: gf-chat
