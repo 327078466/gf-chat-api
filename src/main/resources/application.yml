@@ -41,10 +41,9 @@ sq-mini-tools:
   openai:
     enable: false
     # 可换成自己的代理地址
-    api-host: https://api.chatanywhere.com.cn/
+    api-host: https://api.openai.com/
     # 填写自己的 OpenAI key
-    #    api-key: sk-0arsnPswF3xx0T8ohzOCeetxsxPFaQqJoLM0jZYMFICaHfxQ
-    api-key: sk-1KmU98T8YW3ISy32qv4Tg0qujbLM2wRRedO5d7HeyLZMRWkz
+    api-key: xxx
   chat:
     regist-num: 10
     daily-free-num: 5
@@ -87,7 +86,7 @@ sa-token:
 aliyun:
   oss:
     file:
-      endpoint: oss-cn-beijing.aliyuncs.com
-      keyid: LTAI5tPtGkUQaXMCTafv7tGG1
-      keysecret: xS5BS5WHMR2hc0rNFqppMmmsNczU1z1
-      bucketname: gf-chat
+      endpoint: xxx
+      keyid: xxx
+      keysecret: xxx
+      bucketname: xxx
